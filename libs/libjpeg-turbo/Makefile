@@ -16,6 +16,7 @@ PKG_CPE_ID:=cpe:/a:libjpeg-turbo:libjpeg-turbo
 # Allows ASM compilation for speed
 PKG_BUILD_FLAGS:=no-mips16
 
+include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
@@ -32,6 +33,14 @@ define Package/libjpeg-turbo
   PROVIDES:=libjpeg
 endef
 
+define Package/libturbojpeg-turbo
+  $(call Package/libjpeg-turbo/Default)
+  SECTION:=libs
+  CATEGORY:=Libraries
+  TITLE+= runtime library
+  PROVIDES:=libturbojpeg
+endef
+
 define Package/libjpeg-turbo-utils
   $(call Package/libjpeg-turbo/Default)
   SECTION:=utils
@@ -46,13 +55,21 @@ define Package/libjpeg-turbo/description
 	libjpeg-turbo is a speed focused fork of libjpeg.
 endef
 
+define Package/libturbojpeg-turbo/description
+	libturbojpeg-turbo is a speed focused fork of libjpeg.
+endef
+
 define Package/libjpeg-turbo-utils/description
 	These are the JPEG utilities that come with libjpeg-turbo.
 endef
 
+CMAKE_HOST_OPTIONS += \
+	-DENABLE_SHARED=OFF \
+	-DENABLE_STATIC=ON
+
 CMAKE_OPTIONS += \
 	-DWITH_SIMD=O$(if $(findstring mips,$(CONFIG_ARCH)),FF,N) \
-	-DWITH_TURBOJPEG=OFF
+	-DWITH_TURBOJPEG=ON
 
 ifneq ($(findstring arm,$(CONFIG_ARCH)),)
 ifeq ($(findstring neon,$(CONFIG_CPU_TYPE)),)
@@ -66,15 +83,24 @@ define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libjpeg.so* $(1)/usr/lib/
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libjpeg.a $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libturbojpeg.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libturbojpeg.a $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/*.pc $(1)/usr/lib/pkgconfig/
 	$(SED) 's,/usr/include,$$$${prefix}/include,g' $(1)/usr/lib/pkgconfig/libjpeg.pc
 	$(SED) 's,/usr/lib,$$$${exec_prefix}/lib,g' $(1)/usr/lib/pkgconfig/libjpeg.pc
+	$(SED) 's,/usr/include,$$$${prefix}/include,g' $(1)/usr/lib/pkgconfig/libturbojpeg.pc
+	$(SED) 's,/usr/lib,$$$${exec_prefix}/lib,g' $(1)/usr/lib/pkgconfig/libturbojpeg.pc
 endef
 
 define Package/libjpeg-turbo/install
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libjpeg.so* $(1)/usr/lib
+endef
+
+define Package/libturbojpeg-turbo/install
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libturbojpeg.so* $(1)/usr/lib
 endef
 
 define Package/libjpeg-turbo-utils/install
@@ -86,5 +112,7 @@ define Package/libjpeg-turbo-utils/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/jpegtran $(1)/usr/bin
 endef
 
+$(eval $(call HostBuild))
 $(eval $(call BuildPackage,libjpeg-turbo))
+$(eval $(call BuildPackage,libturbojpeg-turbo))
 $(eval $(call BuildPackage,libjpeg-turbo-utils))
